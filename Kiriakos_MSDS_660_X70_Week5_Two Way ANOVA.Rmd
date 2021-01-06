@@ -1,0 +1,76 @@
+---
+title: "Kiriakos_MSDS660_X70_Week5_TwoWayANOVA"
+author: "Cathy Kiriakos"
+date: "November 25, 2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+"
+## MSDS 660_X70 Week 5 Two-Way ANOVA
+The purpose of this assignment is to analyze income data between male and female respondents using two-way ANOVA.
+
+A researcher wants to investigate the income by Region (North, South, East, West) and gender (male, female). A sample of 24 people combining region and gender are examined. The Income ($1000USD) data are shown as:
+
+First we must create the data frame: 
+```{r,dfcreate}
+region <- c("North", "North", "North", "South", "South", "South", "East", "East", "East", "West", "West", "West","North", "North", "North", "South", "South", "South", "East", "East", "East", "West", "West", "West")
+Income <- c(50,60,45,40,53,68,92,74,87,120,150,85,45,72,65,55,75,48,87,105,79,95,78,115)
+Sex <- c("male","male","male","male","male","male","male","male","male","male","male","male","female","female","female","female","female","female","female","female","female","female","female","female")
+IncomeData<-data.frame("Region" = region, "Sex" = Sex, "Income" = Income)
+summary(IncomeData)
+```
+First we will test our data using ggpairs for normality: 
+```{r,testdata, eval=FALSE}
+ggpairs(IncomeData,lower=list(combo=wrap("facethist", binwidth=0.8)))
+```
+Ok doing our testing we can see that we have normal distributions, We can now run our levene test for homogeneity of variance: 
+```{r,leveneMale}
+library(car)
+leveneTest(Income ~ Sex*Region, data = IncomeData)
+```
+We can see that our P Value is greater than 0.05, telling us that we can not reject the null hypothesis that the variance is equal across groups, suggesting that conducting a non-parametric test might be a better option.  
+```{r,leveneFemale}
+leveneTest(Income ~ Sex, data = IncomeData)
+```
+Now we can get a view of our two-way ANOVA analyzing how income is impacted by sex in region using our data set:
+```{r,residplot}
+aov.income <- aov(Income ~ Sex + region, data = IncomeData)
+summary(aov.income)
+```
+With our output table we can see that while sex and sex*region has a high P-value where we will reject our null hypothesis that the group means are not statistically different, but region at 99% confidence has statistically different group means. 
+
+Now we can compute the two-way ANOVA using the interaction effect of sex and region: 
+```{r,anovainteraction}
+aov.income2<- aov(Income ~ Sex*region + Sex + region, data = IncomeData)
+summary(aov.income2)
+```
+Again, we can see that even the combined sex/region coefficient is not statistically significant, but region is.  We can get a quick visual of the interaction effect below: 
+The visualization script has been obtained using Cran' SJ Plot Package information from the link below:
+https://cran.r-project.org/web/packages/sjPlot/vignettes/plot_interactions.html
+```{r, plotinteraction}
+library(sjPlot)
+library(sjmisc)
+library(ggplot2)
+data(IncomeData)
+theme_set(theme_sjplot())
+
+IncomeData$Sex <- to_factor(IncomeData$Sex)
+
+#fit model with interaction: 
+fit <- lm(Income ~ Sex*Region + Sex + region, data = IncomeData)
+plot_model(fit, type = "pred", terms = c("Sex", "region"))
+```
+
+```{r}
+plot_model(fit, type = "int")
+```
+As anticipated because we saw the interaction effects in our ANOVA, the Sex Region interaction effect is not impactful in our model. 
+
+
+W can see that Region is the only coefficient where the means are statistically significant at 99% confidence interval, whereas sex plays a less impactful role in in our independent variable income. 
+

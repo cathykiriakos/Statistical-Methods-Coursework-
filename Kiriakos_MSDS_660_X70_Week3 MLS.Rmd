@@ -1,0 +1,121 @@
+---
+title: "Kiriakos_MSDS_660_X70_Week3 MLS"
+author: "Cathy Kiriakos"
+date: "November 14, 2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, eval=FALSE}
+library(ggplot2)
+library(GGally)
+library(progress)
+```
+#Multiple Linear Regression - Statistical Methods Week 3
+The data set that I will be working with is the mt cars data set out of R. This is motor trend data that was obtained from the 1974 motor trend US cars.
+
+In this analysis we will see which variables are most influential to a vehicles gas mileage using multiple linear regression MLR.
+
+Utilizing R documentation on the mtcars data set, we can get an understanding of our variables as shown below:  
+httpd://www.rdocumentation.org/packages/data sets/versions/3.6.1/topics/mtcars
+
+[, 1]	mpg	Miles/(US) gallon
+[, 2]	cyl	Number of cylinders
+[, 3]	disp	Displacement (cu.in.)
+[, 4]	hp	Gross horsepower
+[, 5]	drat	Rear axle ratio
+[, 6]	wt	Weight (1000 lbs)
+[, 7]	qsec	1/4 mile time
+[, 8]	vs	Engine (0 = V-shaped, 1 = straight)
+[, 9]	am	Transmission (0 = automatic, 1 = manual)
+[,10]	gear	Number of forward gears
+
+I'm also utilizing analysis on RPubs by D. Astakary httpd://rpubs.com/davoodastaraky/mtRegression
+
+First we will call summary to get an understanding of our variables: 
+```{r, summary}
+summary(mtcars)
+```
+We see that there are 11 variables. 
+```{r, head}
+head(mtcars)
+```
+Using the mt cars data set an obvious dependent variable would be miles per gallon, and see which independent variables can help explain our dependent variable. 
+
+Starting with some exploratory data analysis, I will utilize pairwise scatterplots to look at patterns across the data set: 
+```{r, explore, eval=FALSE}
+ggpairs(mtcars,
+        c("mpg", "wt", "cyl", "am", "hp","carb"))
+```
+
+It will be beneficial to get a look at a correlation matrix: 
+```{r, corr}
+cor(mtcars, method = "pearson", use = "complete.obs")
+```
+From the output above we can see that the most highly correlated variables associated with MPG in this data set are # of cylinders, displacement in cubic inches, weight and horsepower. 
+
+We will next run an analysis of variance on a mls some of our more correlated values plus a few more.
+```{r}
+library(datasets)
+fit<- aov(mpg ~ cyl + disp + hp + wt + am, data = mtcars)
+summary(fit)
+```
+Here we can see that the DF = 1 for all variables telling us that these variables are significant in explaining MPG. In our P 
+-Value analysis we can see that cyl, disp, and wt are less that 0.05, allowing us to reject the null hypothesis that beta equals zero telling us that those are significant variables in our MLR of trying to explain the relationship to MPG. 
+
+So it will make sense to run the same analysis removing the two variables that are insignificant, disp, hp and weight. 
+```{r}
+fit2 <- aov(mpg ~cyl+wt, data = mtcars)
+summary(fit2)
+```
+Ok now our new model, incorporating variables that are significant at within our 95% confidence interval, so now we have a model whose variables, cyl, disp, and wt are statistically significant.
+
+Now we can get a look at some additional useful functions: 
+
+Coefficients
+```{r}
+coefficients(fit2)
+```
+
+Now getting a look at the confidence intervals for the model parameters
+```{r}
+confint(fit2, level = 0.95)
+```
+Now we can get an understanding of the predicted values: 
+```{r}
+fitted(fit2)
+```
+Now we can analyze the residuals of our model 
+```{r, fit_mod}
+residuals(fit2)
+```
+
+Now we can put together some diagnostic plots to check for heteroskedacity, normality and influential observations. 
+```{r}
+layout(matrix(c(1,2,3,4),2,2))
+plot(fit2)
+```
+Looking at our plots, we can see that the residuals are distributed fairly randomly, so it appears that heterscedasity is not an issue in this model.  Looking at our Normality on the QQ plot, we can see that residuals are normally distributed, seeing a pretty strong trend along the line.  The scale-location plot shows us that our residuals are spread equally across the predictors which is a good sign. Lastly looking at our residuals vs. leverage we can see that the plot is your typical case where observations fall within the cooks distance lines, telling us that we do not have any influential cases or extreme values. 
+
+Understanding Diagnostic Plots for Linear Regression Analysis. University of Virginal Library . Research and Data Services. httpd://data.library.virginia.edu/diagnostic-plots/
+
+#Takeaways: 
+In our analysis we determined that using the mtcars data set we are able to explain gas mileage best by the independent variables, cyl, disp, and weight - or our number of cylinders, the weight of the vehicle which makes sense, and the vehicles displacement in cubic inches.  In the end our final model formula tells us MPG = 39.69 + cyl(-1.51)+ wt(-3.19)
+
+```{r, modeldata}
+fit2.1 <- lm(mpg ~ cyl + wt, data = mtcars)
+fit2.1
+```
+```{r, fitagain}
+summary(fit2.1)
+```
+Our multiple R squared tells us that 83% of gas mileage in the mt cars data set can be explained by the number of cylinders and the weight of the vehicles. 
+
+In the end I feel like the results of the regression are a good fit, we've tested for insufficiency in the model.  The one concern with our model would be the smaller data set, we could question if we have a sufficient number of variables to fully rely on the analysis and results of our MLR. 
+
+

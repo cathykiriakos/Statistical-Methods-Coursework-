@@ -1,0 +1,63 @@
+---
+title: "Kiriakos_MSDS660_X70_Week6_Logistic, Multinomal, polynomal Regression"
+author: "Cathy Kiriakos"
+date: "December 2, 2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+##Week 6: Logistic, Multinomal, and Polynomal Regression: 
+
+An investigator wants to study the relationship between age and presence or absence of coronary heart disease. The data will be arranged into a dataframe shown below: 
+```{r, dataframe}
+Patient <- c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23)
+Age <- c(25,26,28,30,31,32,34,35,36,37,39,40,50,51,52,53,54,55,56,57,58,59,60)
+HeartDis <- c(0,0,1,0,0,0,1,0,1,0,0,1,1,1,1,0,1,1,0,1,1,1,1)
+
+DisData <- data.frame("Patient" = Patient, "Age" = Age, "HeartDis" = HeartDis)
+summary(DisData)
+```
+It is important to note that our binary response in this analysis is HeartDis 0 meaning no, and 1 meaning yes.  For this study, I will utilize Logistic Regression using GLM or a generalized linear model function. I am utilizing UCLA's Institute for Digital Research and Education Logit Regression | R Data Analysis Examples as a guide for this analysis that can be assessed using the link: https://stats.idre.ucla.edu/r/dae/logit-regression/
+
+First I will convert HeartDis to a factor to indicate that this should be treated as a categorical variable: 
+```{r,categ}
+DisData$HeartDis <- as.factor(DisData$HeartDis)
+```
+Next we will create the logistic regression for heart disease: 
+```{r, logistic}
+logistic <- glm(HeartDis ~ Age, family = "binomial", data = DisData)
+summary(logistic)
+```
+Looking at our summary above we can see that R will remind us what kind of model we are using, GLM.  Next we get a look at our deviance residuals which indicates the fit of the model.  Next are the coefficiants, their standard errors, z-stats, and p-values.Looking at this output we can see that Age is significant at 95% confidence. The coefficients give us the change in log odds of the outcome for a one unit increase in the predictor interval. 
+
+To put that into a tangible explanation for my results,  for every 1 unit change in Age the odds of having heart disease increases 0.10.
+
+To further validate my model we can obtain confidence intervals for the coefficient estimate, which are based on the "profiled log likelyhood funcion."
+
+```{r,eval=FALSE}
+Confint(logistic)
+```
+We can also obtain the confidence intervals for standard error using the default method shown below: 
+```{r, cidefalut}
+confint.default(logistic)
+```
+Now to test for likelyhood using the Wald-test part of the aov library, in this call the wald.test function refers to the coefficients by their order in the model; b supplies the coefficients and sigma supplies the variance covarance matrix of the errors, and terms specifies the terms in the model that need to be tested 
+```{r, wald, eval=FALSE}
+library("aod")
+wald.test(b = coef(logistic), Sigma = vcov(logistic), Terms = 0:1)
+```
+And so it seems that the single matrix is not accepted.  In reading a bit on stack overflow so we will try an alternative using the car library linear hypothesis test as shown below: 
+```{r, hyptest,eval=FALSE}
+linearHypothesis(logistic,names(coef(logistic))[0:1])
+```
+Using the linear hypothesis test we can see that the p-value is less than 0.05, significant at 95% confidence. The Chi-squared test of 4.5 with 1-degree of freedom telling us the variation between heart disease and no heart disease is statistically significant. Here we get a comparison of full and reduced models to assess the contribution of the coefficients.  
+
+By conducting the tests above we have validated the reults of our logistic model, telling us that risk of heart disease is correlated to an increase in age. Finally a visual validation will complete this analysis below:  
+```{r,plotgml}
+plot(logistic)
+```
+

@@ -1,0 +1,128 @@
+---
+title: "Kiriakos_MSDS_660_X70_Week7 Non Parametric"
+author: "Cathy Kiriakos"
+date: "December 9, 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## MSDS 660 X70: Week 7 Non Parametric Statistics: 
+
+## Souperb Restaraunt Analysis: 
+We want to analyze a restaurant chain "Souperb" 15 people were asked for a rating of 1-5/terrible - excellent. 
+
+We will analyze the results using 95% CI, and will start by creating the data frame below: 
+```{r, dfsouperb}
+Results <- c(5,3,2,1,4,3,5,1,5,2,3,4,2,1,3)
+TestSubject <-c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)
+Souperb <- data.frame("Subject" = TestSubject, "Results" = Results)
+summary(Results)
+head(Results)
+```
+Use the Sign Test to test the median rating whether it is at least 3. The sign test is used to determine if a binomial distribution has an equal chance of success or failure. http://www.r-tutor.com/elementary-statistics/non-parametric-methods/sign-test
+
+We will utilize a tutorial from https://rcompanion.org/handbook/F_03.html R handbook to guide us through this analysis, first to get appropriate libraries loaded: 
+```{r,lib,eval = FALSE}
+library(BSDA)
+library(DescTools)
+```
+For a quick look at our data: 
+```{r,viewData}
+str(Souperb)
+```
+
+```{r,ViewSum}
+summary(Souperb)
+```
+```{r,head}
+head(Souperb)
+```
+Now we will conduct the sign test using the BSDA package, Souperb$Results is our one sample data, and md indicates the default value to compare against which in this analysis we will use 3 
+```{r,SignTestBSDA, eval=FALSE}
+SIGN.test(Souperb$Results, md = 3)
+```
+Reading the results of the sign test above we can see that our true median is not equal to 3, as a result we can not reject the null hypothesis, as our P value is greater that  0.05, basically telling us that the median of the data set does not line up with an average rating for the Souperb restaurant.
+
+## OS Analysis: 
+Two different operating systems (M, W) are rated using 1-10 scale (the higher the better rate). The rates of M operating system are: 9,8,5,3,6,10,4,2,8,7. The rates for W operating system are: 7,6,8,2,9,5,1,4,7,10. Do these operating systems have the same distribution? What statistical test will you use? Given the confidence level = 0.05. State your hypothesis, test statistics, P-value, and conclusion.
+
+We will start by creating the data set: 
+```{r,OSData}
+MOs <- c(9,8,5,3,6,10,4,2,8,7)
+WOs <- c(7,6,8,2,9,5,1,4,7,10)
+
+Os <- data.frame("MOs" = MOs,"WOs" = WOs)
+```
+
+Now to get a look at our data: 
+```{r,view1}
+str(Os)
+```
+```{r,View2}
+Os
+```
+To test if these two sets have a similar distribution we can get a visual by utilizing the histogram: 
+```{r, histMOs}
+hist(Os$MOs)
+```
+
+```{r,histWOs}
+hist(Os$WOs)
+```
+We can also get a more in-depth view utilizing the ggally package and the ggpairs call: 
+```{r}
+library(GGally)
+ggpairs(Os)
+```
+With a view of the histograms, coupled with the output from ggpairs we can see that there is a similarly shaped distribution. 
+
+Based off of our "From the Expert" readings this week, we can see that we have two independent samples of operating system ranking, for this analysis it would be appropriate to use the Mann Whitney U-Test, which is the inference of two different samples test.  I will be utilizing the r handbook for this analysis: https://rcompanion.org/handbook/F_04.html
+
+In this test the null hypothesis would be that the two groups have identical distributions, whereas if we can reject the null hypothesis we know that the two groups are sampled from different distributions, and that typically when we have one-sampled population that we can see stochastic dominance.
+
+The r handbook suggests using this scrip to ensure that all the needed packages are installed: 
+```{r}
+if(!require(psych)){install.packages("psych")}
+if(!require(FSA)){install.packages("FSA")}
+if(!require(lattice)){install.packages("lattice")}
+if(!require(rcompanion)){install.packages("rcompanion")}
+if(!require(coin)){install.packages("coin")}
+if(!require(DescTools)){install.packages("DescTools")}
+if(!require(effsize)){install.packages("effsize")}
+```
+Now to start our analysis, I will rearrange the data set to have it all in one column: 
+```{r,transform}
+library(tidyr)
+Os2 <- data.frame(gather(Os, "OS","Score"))
+Os2
+```
+Now we have the data rearranged by their scale, we can move ahead with our analysis.
+Our next step will involve the creation of a new variable which contain our ratings as ordered factors
+```{r,asfactor}
+Os2$Score.F <- factor(Os2$Score, ordered = TRUE)
+```
+Now we can get a look at the data: 
+```{r,str}
+str(Os2)
+```
+```{r, sum}
+summary(Os2)
+```
+Now we can summarize the data treating the ratings as factors.  The variable that we want to count in this analysis is our score or value count,s for value are cross tabulated over values of the OS type, the prop table function will translate the table into proportions5and the margin = 1 call indicates that proportions are calculated for each row 
+```{r,s}
+library(stats)
+XT<- xtabs(~ OS + Score.F, data = Os2)
+XT
+```
+
+```{r,proptable}
+prop.table(XT, margin = 1)
+```
+Now we can move onto the two sample Mann-Whitney U test, this test will treat score as the dependent variable, and OS as the independent variable. 
+```{r, wilcox}
+wilcox.test(Score ~ OS, data = Os2)
+```
+Now to discuss the results, or p value is less than 0.05 telling us that we can not reject the null hypothesis that the two groups have identical distributions.

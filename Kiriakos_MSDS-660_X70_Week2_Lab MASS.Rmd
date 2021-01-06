@@ -1,0 +1,217 @@
+---
+title: "Kiriakos_Week2_Simple Linear Regression MASS"
+author: "Cathy Kiriakos"
+date: "November 5, 2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Purpose: Utilize Boston Data Set in R to find linkages between housing values and other indicators 
+
+From MASS library in R, we will use the Boston housing data set
+
+First we will call the MASS library, by calling data() we can see all data compiled in this library.  Looking through we can see that Boston is the name of the data set that we will use to explore the Boston Housing data
+```{r, MASS}
+library(MASS)
+data()
+```
+
+Our next step is to ensure we have all the needed libraries for our analysis, using guidance from R-Pubs "Analysis of Boston housing data using linear regression ,trees and GAM." By Rashmi Subrahmanya 2018.03.02 https://rpubs.com/Rashmi_Subrahmanya/371719
+
+```{r, Libraries, include = FALSE, eval=FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(corrplot)
+library(leaps)
+library(rpart)
+library(mgcv)
+library(glmnet)
+library(boot)
+library(rpart.plot)
+```
+It is important to understand what the Boston Data Set is about before we start our analyisis: 
+
+https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/Boston.html
+
+By utilizing the R Help menue in R Studio we can get the details on the dataframe; here we can find out that the Boston Data Set has details on the housing values in Boston as shown below:  
+
+Description
+The Boston data frame has 506 rows and 14 columns.
+
+Usage
+Boston
+Format
+This data frame contains the following columns:
+
+crim
+per capita crime rate by town.
+
+zn
+proportion of residential land zoned for lots over 25,000 sq.ft.
+
+indus
+proportion of non-retail business acres per town.
+
+chas
+Charles River dummy variable (= 1 if tract bounds river; 0 otherwise).
+
+nox
+nitrogen oxides concentration (parts per 10 million).
+
+rm
+average number of rooms per dwelling.
+
+age
+proportion of owner-occupied units built prior to 1940.
+
+dis
+weighted mean of distances to five Boston employment centres.
+
+rad
+index of accessibility to radial highways.
+
+tax
+full-value property-tax rate per \$10,000.
+
+ptratio
+pupil-teacher ratio by town.
+
+black
+1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town.
+
+lstat
+lower status of the population (percent).
+
+medv
+median value of owner-occupied homes in \$1000s.
+
+
+Now We can start with exploratory data anaysis:
+```{r}
+data(Boston)
+head(Boston)
+```
+Here we can see that there are 14 columns of data
+
+Now we can get a look at the structure of the data by calling glimpse on the Boston Dataset 
+```{r, eval=FALSE}
+glimpse(Boston)
+```
+This shows us that there are 506 observations, that the numeric data is read as double 
+
+```{r}
+summary(Boston)
+```
+
+By calling summary we can get a view of the 14 variables in the data as shown above
+
+Now it is beneficial to get a look at any missing variables: 
+```{r,checkNA}
+sum(is.na(Boston))
+```
+Above we can see that we are in good shape
+
+2. From the data set, select one independent (predictor) and one dependent variable (response). Do the pairwise scatterplots and describe your findings.
+
+For this analysis my dependent variable will be "medv" median value of owner-occupied homes in \$1000s. My predictor or independent variable will be "tax" full-value property-tax rate per \$10,000. I chose the independent variable because with regards to my own community, its a common factor that property tax values being so high suppress the values of some homes, so it will be interesting to see if this phenomena holds true in Boston: 
+```{r,scatterPlot}
+attach(Boston)
+plot(Boston$medv, Boston$tax,
+     main = "Median Housing Value vs. Tax in Boston",
+     xlab = "Median Housing Value", 
+     ylab = "Tax Rate")
+abline(lm(tax~medv),col="red") #regression line in red
+lines(lowess(medv,tax), col="blue") #lowess line in blue 
+```
+As shown above We can see that for a subset of the data the tax rate is consistently high regardless of what the median housing value is. From the plot there seems to be an illogical linear relationship between the values where as housing values increase tax rates fall which doesnt make sense.  We will try to find a relatioship that makes more sense below.
+
+
+Again we will keep the theme of Median Housing Values (medv) as our x dependent variable, and now choose distance to employer centers (dis), with these values it would make sense that housing closer to their downtown or possibly tech centers would increase...  So now we can see if this hypothesis holds true below: 
+```{r, Scatterplot2}
+plot(Boston$medv, Boston$dis,
+     main = "Median Housing Value vs. Distance to Employment Centers",
+     xlab = "Median Housing Value", 
+     ylab = "Distance to Employment Centers")
+abline(lm(dis~medv),col="red") #regression line in red
+lines(lowess(medv,dis), col="blue") #lowess line in blue 
+```
+Ok looking at our plot above along with the regression and lowess line we can see a linear relationship that makes more sense. In may cities, very close to the cities are more empovrished areas for a lowere median housing values in the super close areas...  We see a tick upward in prices with a distance that could be the near suburbs, which makse sense. This is a univariate regression that makes sense, so we can move forward with the analysis with our gut check on the data. 
+
+We can perfom some additional testing to understand our data futher.  We will drop in a density plot to understand our variables in the model and see if they're close to normal...  The Distance variable appears to be more of a log normal distribution, but median home values look normally distributed. 
+```{r, densityPlot}
+library(e1071)
+#divide graph into two columns
+ par(mfrow=c(1,2))
+ plot(density(Boston$medv), main = "Density Plot Median Home Value", xlab = "Median Home Value", ylab = "Frequency",sub = paste("Skewness", round(e1071::skewness(Boston$medv),2 ))) #density plot for Median Home Value 
+polygon(density(Boston$medv), col = "blue")
+  plot(density(Boston$dis), main = "Density Plot Distance from Economic Center", xlab = "Distance from Economic Center", ylab = "Frequency", sub = paste("Skewness", round(e1071::skewness(Boston$dis),2)))#density plot for Distance from Economic Center
+polygon(density(Boston$dis), col = "Blue")
+
+```
+With our plot we were able to drop in a regression line and understand the linear relationship of housing values and distance from economic centers, or working centers.  Now we can continue to analyize our model and understand how strong distance from an econcomic center is related to the median housing prices of homes in Boston. We will expand on this relationship below. 
+
+To analize the fit of a model, we will first get a look at correlation: 
+```{r,Corr}
+cor(Boston$medv, Boston$dis)
+```
+
+Here we can see that the correlation is weak as a low correlation falls between (0.2) - 0.2. Given these results we will look at other variables. 
+
+One could assume that the number of the rooms in a home would be highly correlated to the median home price...  Lets see how that hypothesis holds out, starting again with our scatterplot: 
+```{r,RoomsPrice}
+plot(Boston$medv, Boston$rm,
+     main = "Median Housing Value vs. rmtance to Employment Centers",
+     xlab = "Median Housing Value", 
+     ylab = "rmtance to Employment Centers")
+abline(lm(rm~medv),col="red") #regression line in red
+lines(lowess(medv,rm), col="blue") #lowess line in blue 
+
+```
+I cant understand why the medv is not being recognized in the abline call to fit our lines.  But again I'm seeing a stronger correlation visually when plotting out these two variables.  We will continue on evaluating the fit of the model, again by getting a look at density plots: 
+```{r,density2}
+#divide graph into two columns
+ par(mfrow=c(1,2))
+ plot(density(Boston$medv), main = "Density Plot Median Home Value", xlab = "Median Home Value", ylab = "Frequency",sub = paste("Skewness", round(e1071::skewness(Boston$medv),2 ))) #density plot for Median Home Value 
+polygon(density(Boston$medv), col = "blue")
+  plot(density(Boston$dis), main = "Density Plot Number of Rooms", xlab = "Number of ROoms", ylab = "Frequency", sub = paste("Skewness", round(e1071::skewness(Boston$rm),2)))#density plot for # of rooms
+polygon(density(Boston$dis), col = "Blue")
+
+```
+
+Now we will get a look at the correlation to understand the level of linear dependance between the two variables: 
+```{r, corr2}
+cor(Boston$medv,Boston$rm)
+```
+Ok as expected we have a higher correlation between these two variables, as one would expect.
+
+Now lets build out the linear regression model below: 
+```{r,regression2}
+linMod <- lm(medv~rm, data = Boston)
+print(linMod)
+```
+Now we have established the relationship between the independent variable # of rooms against the median housing value our independent variable.
+```{r,summod2}
+summary(linMod)
+```
+By looking at our P-Value we can see that the p-value is much less than 0.05, so we can reject the null hypothesis that beta is equal to zero and know that there is a significant relationship between the variables of numbers of rooms predicting median housing values in the Boston Data set.  
+
+Here our formula would go as follows: medv = -34.671 + 9.102*rm
+
+Now we can get look at our confidence intervals, we will get a look at our beta one interval with the call below: 
+
+```{r, confidenceBeta1}
+confint(linMod,0.95)
+```
+Seeing that with 95% confidence our model is between 2.5% and 97.5%, assuming that the random variables are normally distributed and samples are independent.
+
+
+With this univariate regression I would be concerned with the concept of only using one variable to predict the median housing values in Boston.  Since this was a simple regression, it was a good exercise but I would prefer to have additional independent variables to help the model along.  Picking and choosing the independent variable based on assumptions was likely not the best approach to determinging the best fit.  Nonetheless a good experiment, and as one would expect with the data analyzed we can see a relationship between rooms and value; which makes sense.  Another concern is the size of the data set, with only 500ish observations, we could be concerned that we have not cast a net wide enough to capture the real details in the model.  
+
+
+

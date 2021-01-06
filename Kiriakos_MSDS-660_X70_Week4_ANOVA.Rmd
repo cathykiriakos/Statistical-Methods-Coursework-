@@ -1,0 +1,55 @@
+---
+title: "Kiriakos_Week 4 ANOVA"
+author: "Cathy Kiriakos"
+date: "November 18, 2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(GGally)
+```
+
+## Week 4 One Way Anova 
+In a study, 3 different treatments (T1,T2, T3) for pain relief are investigated. The investigator randomly assigns 12 participants to the treatments. The participants are instructed to take the given medication when they feel pain, and record the time (in minutes) until the pain eases off. The following table shows time to pain relief by treatments.
+
+First we will create the small dataframe with the two calls below: 
+```{r, createDataFrame}
+PainRel <- c(14,24,12,25,20,14,17,18,22,29,36,20)
+Treatment <- c("A", "A", "A", "A", "B", "B", "B", "B", "C", "C", "C", "C")
+```
+Creating our data frame for ANOVA below: 
+```{r}
+treatmentData <- data.frame(Treatment,PainRel)
+str(treatmentData)
+```
+Our first step is to validate that the data is normally distributed; using ggpairs below we can see that our data does indeed follow a normal distribution - 
+```{r, analysisGGpairs}
+ggpairs(treatmentData,lower=list(combo=wrap("facethist", binwidth=0.8)))
+```
+We will also get a summary of the data frame: 
+```{r, summary}
+summary(treatmentData)
+```
+
+Variance of groups should be approximately equal or homogeneity of variance as noted in this week's from the expert assumptions.  To accomplish this we should examine by using a Levine statistic test as shown below: 
+```{r}
+library(car)
+``` 
+
+```{r,levene}
+leveneTest(PainRel ~ Treatment, treatmentData)
+```
+From the output above we can see that the p-values is less than 0.05 telling us that when testing for equal variances among groups we can reject our null hypothesis that our population are equal.
+```{r,ANOVA}
+oneway.test(PainRel ~ Treatment, data = treatmentData)
+```
+With our above output we can see that the p-value is not under 0.05, we can not reject the null hypothesis, that the coefficients do not have a linear relationship.  
+
+```{r, aov}
+aov.treat <- aov(PainRel ~ Treatment, data = treatmentData)
+summary(aov.treat)
+```
+Conducting this analysis calling AOV we can get a little bit more information than the one.way call above.  The output tells us that the P-Value is greater than 0.05 and that we can not reject the null hypothesis. Telling us that at 0.5 alpha or with a 95% confidence we can not reject the null hypothesis; telling us that the group means are not statistically different.  THe F-Value is high 3 to be exact telling us that variation among the group means are more than we would expect to observe by chance. 
